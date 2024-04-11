@@ -1,3 +1,7 @@
-import { playNewgroundsSong } from './services/playNewgroundsSong.js';
+import app from './app.js';
 
-playNewgroundsSong('1312938', 'ONE_MINUTE');
+const port = 3000;
+
+app.listen(port, () => {
+  console.log(`app listening at http://localhost:${port}`);
+});

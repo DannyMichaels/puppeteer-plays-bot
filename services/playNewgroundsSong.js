@@ -9,22 +9,26 @@ export const playNewgroundsSong = async (
 ) => {
   const { browser, page, timeoutId } = await initializePuppeteerInstance({
     puppeteerOptions: {
-      headless: false,
+      headless: 'new',
     },
     pageOptions: {
       width: 1818,
       height: 1055,
     },
-    autoKill: true,
+    autoKill: false,
     useStealthPlugin: true,
   });
 
   try {
+    console.log('attempting to play song ' + songId);
+
     await goToPageAndClickPlay(
       page,
       `${CONSTANTS.NEWGROUNDS_AUDIO_URL}${songId}`,
       CONSTANTS.NEWGROUNDS_AUDIO_PLAY_BTN_SELECTOR
     );
+
+    console.log(`Song ${songId} is playing!`);
 
     const audioDuration = await getPageAudioDuration(
       page,
