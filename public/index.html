@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newgrounds Player</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #ffd369;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #ffd369;
+      font-size: 1.1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0f0f23;
+      color: #eee;
+      font-size: 1rem;
+      margin-bottom: 15px;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #ffd369;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #ffd369;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #ffbd39;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .status-item {
+      background: #0f0f23;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .status-item .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ffd369;
+    }
+    .status-item .label {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 4px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status-badge.idle { background: #444; color: #aaa; }
+    .status-badge.playing { background: #4ade80; color: #000; }
+    .status-badge.stopped { background: #f87171; color: #000; }
+    .queue-status .status-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .message {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .message.success {
+      display: block;
+      background: #065f46;
+      color: #6ee7b7;
+    }
+    .message.error {
+      display: block;
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+    .songs-container {
+      display: grid;
+      gap: 15px;
+    }
+    .song-card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .song-card .song-id {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ffd369;
+      min-width: 100px;
+    }
+    .song-card .song-id a {
+      color: #ffd369;
+      text-decoration: none;
+    }
+    .song-card .song-id a:hover {
+      text-decoration: underline;
+    }
+    .song-card .song-stats {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+    }
+    .song-card .stat {
+      text-align: center;
+    }
+    .song-card .stat .value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+    }
+    .song-card .stat .label {
+      font-size: 0.75rem;
+      color: #888;
+    }
+    .song-card .progress-bar {
+      flex: 1;
+      background: #0f0f23;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .song-card .progress-bar .fill {
+      height: 100%;
+      background: #4ade80;
+      transition: width 0.3s;
+    }
+    .empty-state {
+      text-align: center;
+      color: #666;
+      padding: 40px;
+    }
+    .top-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 600px) {
+      .top-section {
+        grid-template-columns: 1fr;
+      }
+      .song-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .song-card .song-stats {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Newgrounds Player</h1>
+
+    <div class="top-section">
+      <div class="card">
+        <h2>Queue a Song</h2>
+        <div id="message" class="message"></div>
+        <form id="playForm">
+          <label for="songId">Song ID</label>
+          <input type="text" id="songId" name="songId" placeholder="e.g. 1512999" required>
+
+          <label for="finishIn">Play Duration</label>
+          <select id="finishIn" name="finishIn">
+            <option value="ONE_MINUTE">1 Minute</option>
+            <option value="TWO_MINUTES">2 Minutes</option>
+            <option value="FIVE_MINUTES">5 Minutes</option>
+          </select>
+
+          <label for="playCount">Play Count</label>
+          <input type="number" id="playCount" name="playCount" value="1" min="1" max="100">
+
+          <button type="submit">Queue Song</button>
+        </form>
+      </div>
+
+      <div class="card queue-status">
+        <h2>Global Stats</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="value" id="totalSongs">0</div>
+            <div class="label">Songs</div>
+          </div>
+          <div class="status-item">
+            <div class="value" id="playingSongs">0</div>
+            <div class="label">Playing</div>
+          </div>
+          <div class="status-item">
+            <div class="value" id="totalPlayed">0</div>
+            <div class="label">Played</div>
+          </div>
+          <div class="status-item">
+            <div class="value" id="totalPending">0</div>
+            <div class="label">Pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>All Songs</h2>
+      <div class="songs-container" id="songsContainer">
+        <div class="empty-state">No songs queued yet</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('playForm');
+    const message = document.getElementById('message');
+    const songsContainer = document.getElementById('songsContainer');
+
+    // Global queue SSE
+    const queueEventSource = new EventSource('/queue/status');
+    queueEventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      document.getElementById('totalSongs').textContent = data.totalSongs;
+      document.getElementById('playingSongs').textContent = data.playingSongs;
+      document.getElementById('totalPlayed').textContent = data.totalPlayed;
+      document.getElementById('totalPending').textContent = data.totalPending;
+    };
+
+    // All songs SSE
+    const songsEventSource = new EventSource('/songs/status');
+    songsEventSource.onmessage = (event) => {
+      const songs = JSON.parse(event.data);
+      renderSongs(songs);
+    };
+
+    function renderSongs(songs) {
+      if (songs.length === 0) {
+        songsContainer.innerHTML = '<div class="empty-state">No songs queued yet</div>';
+        return;
+      }
+
+      songsContainer.innerHTML = songs.map(song => {
+        const progress = song.totalPlays > 0
+          ? Math.round((song.playedCount / song.totalPlays) * 100)
+          : 0;
+
+        return `
+          <div class="song-card">
+            <div class="song-id">
+              <a href="https://www.newgrounds.com/audio/listen/${song.songId}" target="_blank">${song.songId}</a>
+            </div>
+            <span class="status-badge ${song.status}">${song.status}</span>
+            <div class="song-stats">
+              <div class="stat">
+                <div class="value">${song.playedCount}</div>
+                <div class="label">Played</div>
+              </div>
+              <div class="stat">
+                <div class="value">${song.pendingCount}</div>
+                <div class="label">Pending</div>
+              </div>
+              <div class="stat">
+                <div class="value">${song.totalPlays}</div>
+                <div class="label">Total</div>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="fill" style="width: ${progress}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const songId = document.getElementById('songId').value.trim();
+      const finishIn = document.getElementById('finishIn').value;
+      const playCount = parseInt(document.getElementById('playCount').value, 10);
+
+      try {
+        const res = await fetch('/newgrounds/play', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songId, finishIn, playCount }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          message.textContent = data.message;
+          message.className = 'message success';
+          document.getElementById('songId').value = '';
+        } else {
+          message.textContent = data.message || 'Error queueing song';
+          message.className = 'message error';
+        }
+      } catch (err) {
+        message.textContent = 'Failed to connect to server';
+        message.className = 'message error';
+      }
+
+      setTimeout(() => {
+        message.className = 'message';
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
